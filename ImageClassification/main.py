@@ -268,6 +268,6 @@ if __name__ == '__main__':
     print(content)
     ## please replace the token of pushplus by yours
     ## you can get your own token on this website http://www.pushplus.plus/
-    send_notice(token="cf824b3aeeb4463781b17f0bdbb7a4b9", content=content)
+    send_notice(token="", content=content)
     print('Mainprocess is end.')
     
