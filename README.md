@@ -9,3 +9,4 @@ Training deep neural networks is a challenging task. In order to speed up traini
 One can investigate in [fig/cifar10](fig/cifar10)
 
 # Results of CIFAR-100
+One can investigate in [fig/cifar100](fig/cifar100)
