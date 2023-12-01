@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+
 colors = {'1e-2':'blue', '1e-3':'green', '1e-4':'purple', '1e-5':'orange', '1e-6':'brown'}
 baselines = ('CoBA', 'Adam',)
 # lrs = ('1e-2', '1e-3', '1e-4', '1e-5', '1e-6',)
