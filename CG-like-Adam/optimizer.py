@@ -1,11 +1,11 @@
 from collections import defaultdict, abc as container_abcs
+
 import torch
 from copy import deepcopy
 from itertools import chain
 import warnings
 import functools
 
-__all__ = ['Optimizer']
 
 class _RequiredParameter(object):
     """Singleton class representing a required parameter for an Optimizer."""
@@ -13,18 +13,6 @@ class _RequiredParameter(object):
         return "<required parameter>"
 
 required = _RequiredParameter()
-
-
-def _use_grad_for_differentiable(func):
-    def _use_grad(self, *args, **kwargs):
-        prev_grad = torch.is_grad_enabled()
-        try:
-            torch.set_grad_enabled(self.defaults['differentiable'])
-            ret = func(self, *args, **kwargs)
-        finally:
-            torch.set_grad_enabled(prev_grad)
-        return ret
-    return _use_grad
 
 
 class Optimizer(object):
@@ -70,7 +58,6 @@ class Optimizer(object):
         # https://github.com/pytorch/pytorch/issues/72948
         self._warned_capturable_if_run_uncaptured = True
 
-
     def __getstate__(self):
         return {
             'defaults': self.defaults,
@@ -81,7 +68,6 @@ class Optimizer(object):
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._hook_for_profile()  # To support multiprocessing pickle/unpickle.
-        self.defaults.setdefault('differentiable', False)
 
     def __repr__(self):
         format_string = self.__class__.__name__ + ' ('
@@ -272,7 +258,7 @@ class Optimizer(object):
         r"""Performs a single optimization step (parameter update).
 
         Args:
-            closure (Callable): A closure that reevaluates the model and
+            closure (callable): A closure that reevaluates the model and
                 returns the loss. Optional for most optimizers.
 
         .. note::
@@ -306,7 +292,7 @@ class Optimizer(object):
             if not isinstance(param, torch.Tensor):
                 raise TypeError("optimizer can only optimize Tensors, "
                                 "but one of the params is " + torch.typename(param))
-            if not self.defaults.get('differentiable', None) and not (param.is_leaf or param.retains_grad):
+            if not param.is_leaf:
                 raise ValueError("can't optimize a non-leaf Tensor")
 
         for name, default in self.defaults.items():
