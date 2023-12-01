@@ -83,7 +83,7 @@ class CG_like_Adam(Optimizer):
                     theta_t = 0
                     y_t = grad.new().resize_as_(grad).zero_()
                 else:
-                    grad_pre = state['grad_previous']
+                    grad_pre = state['grad_previous'].clone().detach()
                     d_t_pre = state['d_t']
                     # FR
                     if group['gammatype'] == 'FR':
@@ -103,7 +103,6 @@ class CG_like_Adam(Optimizer):
                         theta_t = grad.mul(d_t_pre).sum(0).sum() / (grad_pre.mul(grad_pre).sum(0).sum() + group['eps'])
                     # HS
                     elif group['gammatype'] == 'HS':
-                        # gamma_t = 1e-3
                         y_t = grad - grad_pre
                         gamma_t = grad.mul(y_t).sum(0).sum() / (d_t_pre.mul(y_t).sum(0).sum() + group['eps'])
                     # DY
@@ -118,6 +117,9 @@ class CG_like_Adam(Optimizer):
                     else:
                         raise Exception("Unknow Gamma type: "+str(group['gammatype']))
                 
+                # save grad_t-1
+                state['grad_previous'] = grad.clone().detach()
+
                 # Calculate d_t
                 if group['gammatype'] == 'MFR':
                     state['d_t'].mul_(-gamma_t).add_(grad.mul(1+theta_t))
@@ -125,12 +127,13 @@ class CG_like_Adam(Optimizer):
                     state['d_t'].mul_(-gamma_t).add_(grad).add_(y_t.mul(theta_t))
                 else:
                     state['d_t'].mul_(- gamma_t / state['step']**a).add_(grad)
+                
                 # Assert the element of d_t not including nan or inf
                 if state['d_t'].isnan().any() or state['d_t'].isinf().any():
                     raise ValueError("Invalid d_t value [inf or nan]: {}".format(state['d_t']))
                 
                 # Calculate beta_1t
-                state['beta1t'] = beta11 * group['lambada']**(state['step']-1) # beta_1t的取值范围为[0,1)
+                state['beta1t'] = beta11 * group['lambada']**(state['step']-1)
                 # Calculate m_t
                 exp_avg.mul_(state['beta1t']).add_(state['d_t'], alpha=1-state['beta1t'])
                 # Assert the element of m_t not including nan or inf
@@ -138,7 +141,7 @@ class CG_like_Adam(Optimizer):
                     raise ValueError("Invalid exp_avg value [inf or nan]: {}".format(exp_avg))
                 
                 # Calculate v_t
-                exp_avg_sq.mul_(beta2).addcmul_(state['d_t'], state['d_t'], value = 1-beta2) # 实验2
+                exp_avg_sq.mul_(beta2).addcmul_(state['d_t'], state['d_t'], value = 1-beta2)
                 # # Assert the element of v_t not including nan or inf
                 if exp_avg_sq.isnan().any() or exp_avg_sq.isinf().any():
                    raise ValueError("Invalid exp_avg_sq value [inf or nan]: {}".format(exp_avg_sq))
@@ -159,9 +162,6 @@ class CG_like_Adam(Optimizer):
                     v_hat_t = (exp_avg_sq.sqrt().div(math.sqrt(bias_correction2))).add_(group['eps'])
                     if v_hat_t.isnan().any() or v_hat_t.isinf().any():
                         raise ValueError("Invalid v_hat_t value [inf or nan]: {}".format(v_hat_t))
-                
-                # save grad_t-1
-                state['grad_previous'] = grad.clone().detach()
                 
                 p.data.addcdiv_(exp_avg, v_hat_t, value = - group['lr']/(state['step']**b * bias_correction1))
                 if p.data.isnan().any() or p.data.isinf().any():
